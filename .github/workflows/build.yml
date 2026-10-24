@@ -7,6 +7,9 @@ on:
       - main
   workflow_dispatch:
 
+permissions:
+  contents: write
+
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -23,4 +26,18 @@ jobs:
       - name: Build Plugins
         run: |
           chmod +x gradlew
-          ./gradlew make
+          ./gradlew make makePluginsJson
+
+      - name: Publish to builds branch
+        run: |
+          mkdir -p /tmp/out
+          cp */build/*.cs3 /tmp/out/
+          cp build/plugins.json /tmp/out/
+          cd /tmp/out
+          git init -b builds
+          git config user.email "actions@github.com"
+          git config user.name "GitHub Actions"
+          git add .
+          git commit -m "Build $GITHUB_SHA"
+          git remote add origin "https://x-access-token:${{ secrets.GITHUB_TOKEN }}@github.com/${{ github.repository }}.git"
+          git push --force origin builds
