@@ -2,7 +2,6 @@ package com.example
 
 import com.lagradost.cloudstream3.*
 import com.lagradost.cloudstream3.utils.*
-import com.lagradost.cloudstream3.LoadResponse.Companion.addEpisodes
 import java.net.URLEncoder
 
 class ExampleProvider : MainAPI() {
