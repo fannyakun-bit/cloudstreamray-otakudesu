@@ -5,7 +5,7 @@ import com.lagradost.cloudstream3.utils.*
 import java.net.URLEncoder
 
 class ExampleProvider : MainAPI() {
-    override var mainUrl = "https://otakudesu.cloud" 
+    override var mainUrl = "https://otakudesu.blog" 
     override var name = "Otakudesu"
     override val hasMainPage = true
     override var lang = "id"
