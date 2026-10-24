@@ -1,0 +1,22 @@
+[
+    {
+        "iconUrl": "https://www.google.com/s2/favicons?domain=otakudesu.blog&sz=%size%",
+        "fileHash": "sha256-2b29b3954bca2818531f57a742b58545cb2e2198773b9e0d02c2e12dbdcfa99b",
+        "apiVersion": 1,
+        "repositoryUrl": "https://github.com/fannyakun-bit/cloudstreamray-otakudesu",
+        "fileSize": 37731,
+        "status": 1,
+        "language": "id",
+        "authors": [
+            "fannyakun-bit"
+        ],
+        "tvTypes": [
+            "Anime"
+        ],
+        "version": 8,
+        "internalName": "ExampleProvider",
+        "description": "Otakudesu provider",
+        "url": "https://raw.githubusercontent.com/fannyakun-bit/cloudstreamray-otakudesu/builds/ExampleProvider.cs3",
+        "name": "ExampleProvider"
+    }
+]
