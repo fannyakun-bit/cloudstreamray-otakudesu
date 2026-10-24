@@ -11,7 +11,6 @@ buildscript {
     dependencies {
         classpath("com.android.tools.build:gradle:8.1.1")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.10")
-        // Menggunakan nama modul resmi bawaan template Cloudstream
         classpath("com.github.recloudstream:gradle:-SNAPSHOT")
     }
 }
@@ -33,7 +32,8 @@ subprojects {
     apply(plugin = "com.lagradost.cloudstream3.gradle")
 
     cloudstream {
-        setDest(file("../builds"))
+        // Menggunakan sintaksis modern yang didukung plugin Cloudstream
+        setPluginDir(file("../builds"))
     }
 
     tasks.withType<KotlinCompile> {
@@ -47,6 +47,6 @@ subprojects {
     }
 }
 
-task<Delete>("clean") {
-    delete(rootProject.buildDir)
+tasks.register<Delete>("clean") {
+    delete(rootProject.layout.buildDirectory)
 }
