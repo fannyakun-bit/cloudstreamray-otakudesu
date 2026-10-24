@@ -396,8 +396,9 @@ class ExampleProvider : MainAPI() {
         val html = res.text
         val doc = res.document
         val origin = Regex("""^(https?://[^/]+)""").find(url)?.groupValues?.get(1) ?: url
-        val server = Regex("""/dstream/([A-Za-z0-9]+)""").find(url)?.groupValues?.get(1)
-            ?.replaceFirstChar { it.uppercase() } ?: "Desustream"
+        val server = (Regex("""/dstream/([A-Za-z0-9]+)""").find(url)?.groupValues?.get(1)
+            ?.replaceFirstChar { it.uppercase() } ?: "Desustream") +
+                (if (url.contains("/hd/")) "hd" else "")
 
         val iframeSrc = doc.selectFirst("iframe")?.attr("src").orEmpty()
 
@@ -407,12 +408,32 @@ class ExampleProvider : MainAPI() {
             return
         }
 
-        // 2. link video langsung di dalam halaman (odcdn: mp4, lainnya mungkin m3u8)
-        val direct = Regex("""https?://[^"'\s\\]+?\.mp4[^"'\s\\]*""").find(html)?.value
+        // 2. link video langsung di dalam halaman:
+        //    - tag <video><source src=...> (ondesuhd, link googlevideo; Jsoup sudah membuka &amp;)
+        //    - atau link .mp4 / .m3u8 di skrip (odcdn dst.)
+        val videoSrc = doc.selectFirst("video source[src]")?.attr("src")
+            ?: doc.selectFirst("video[src]")?.attr("src")
+        val direct = videoSrc?.takeIf { it.startsWith("http") }
+            ?: Regex("""https?://[^"'\s\\]+?\.mp4[^"'\s\\]*""").find(html)?.value
             ?: Regex("""https?://[^"'\s\\]+?\.m3u8[^"'\s\\]*""").find(html)?.value
         if (direct != null) {
-            val label = Regex("""(\d{3,4})p""").find(direct)?.value ?: quality
+            val itagLabel = Regex("""itag=(\d+)""").find(direct)?.groupValues?.get(1)
+                ?.toIntOrNull()?.let {
+                    when (it) {
+                        18 -> "360p"
+                        59 -> "480p"
+                        22 -> "720p"
+                        37 -> "1080p"
+                        else -> null
+                    }
+                }
+            val label = itagLabel
+                ?: Regex("""(\d{3,4})p""").find(direct)?.value
+                ?: Regex("""(\d{3,4})p""").find(doc.title())?.value
+                ?: quality
             val isHls = direct.contains(".m3u8")
+            val linkReferer = if (direct.contains("googlevideo.com"))
+                "https://www.blogger.com/" else "$origin/"
             callback(
                 newExtractorLink(
                     this.name,
@@ -421,7 +442,7 @@ class ExampleProvider : MainAPI() {
                     if (isHls) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
                 ) {
                     this.quality = getQualityFromName(label)
-                    this.referer = "$origin/"
+                    this.referer = linkReferer
                 }
             )
             return
