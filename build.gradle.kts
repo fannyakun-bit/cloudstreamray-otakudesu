@@ -26,14 +26,17 @@ allprojects {
 fun Project.cloudstream(configuration: CloudstreamExtension.() -> Unit) =
     extensions.getByName<CloudstreamExtension>("cloudstream").configuration()
 
+
 subprojects {
     apply(plugin = "com.android.library")
     apply(plugin = "kotlin-android")
     apply(plugin = "com.lagradost.cloudstream3.gradle")
 
     cloudstream {
-        // Proper penentuan direktori build di Cloudstream Plugin DSL
-        destDir = file("../builds")
+        setRepo(
+            System.getenv("GITHUB_REPOSITORY")
+                ?: "https://github.com/USERNAME/REPOSITORY"
+        )
     }
 
     tasks.withType<KotlinCompile> {
@@ -46,6 +49,7 @@ subprojects {
         }
     }
 }
+
 
 tasks.register<Delete>("clean") {
     delete(rootProject.layout.buildDirectory)
