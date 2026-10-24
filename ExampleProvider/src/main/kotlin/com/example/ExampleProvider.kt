@@ -91,12 +91,33 @@ class ExampleProvider : MainAPI() {
             it.selectFirst("h2")?.text()?.trim().equals(day, ignoreCase = true)
         } ?: return emptyList()
 
-        return box.select("ul li a").mapNotNull { a ->
+        val entries = box.select("ul li a").mapNotNull { a ->
             val title = cleanTitle(a.text())
             val href = a.attr("href")
             if (title.isEmpty() || href.isEmpty()) return@mapNotNull null
-            newAnimeSearchResponse(title, href, TvType.Anime)
+            title to href
         }
+
+        // poster diambil paralel dari halaman tiap anime (halaman jadwal tidak punya gambar)
+        return entries.amap { (title, href) ->
+            val poster = fetchPoster(href)
+            newAnimeSearchResponse(title, href, TvType.Anime) {
+                this.posterUrl = poster
+            }
+        }
+    }
+
+    private val posterCache = java.util.concurrent.ConcurrentHashMap<String, String>()
+
+    private suspend fun fetchPoster(url: String): String? {
+        posterCache[url]?.let { return it.ifEmpty { null } }
+        val poster = try {
+            app.get(url).document.selectFirst(".fotoanime img")?.attr("src")
+        } catch (e: Exception) {
+            return null
+        }
+        posterCache[url] = poster.orEmpty()
+        return poster?.takeIf { it.isNotBlank() }
     }
 
     private fun Element.toGenreResult(): SearchResponse? {
