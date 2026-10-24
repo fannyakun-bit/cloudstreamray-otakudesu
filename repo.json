@@ -1,1 +1,8 @@
-
+{
+    "name": "Otakudesu Repo",
+    "description": "Provider Otakudesu",
+    "manifestVersion": 1,
+    "pluginLists": [
+        "https://raw.githubusercontent.com/fannyakun-bit/cloudstreamray-otakudesu/builds/plugins.json"
+    ]
+}
