@@ -35,7 +35,7 @@ subprojects {
     cloudstream {
         setRepo(
             System.getenv("GITHUB_REPOSITORY")
-                ?: "https://github.com/USERNAME/REPOSITORY"
+                ?: "https://github.com/fannyakun-bit/cloudstreamray-otakudesu"
         )
     }
 
