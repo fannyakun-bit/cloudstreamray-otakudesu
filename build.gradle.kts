@@ -11,8 +11,8 @@ buildscript {
     dependencies {
         classpath("com.android.tools.build:gradle:8.1.1")
         classpath("org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.10")
-        // Menggunakan commit hash spesifik dari recloudstream/gradle-plugin agar terhindar dari error `-SNAPSHOT` JitPack
-        classpath("com.github.recloudstream:gradle-plugin:e859b79313")
+        // Menggunakan nama modul resmi bawaan template Cloudstream
+        classpath("com.github.recloudstream:gradle:-SNAPSHOT")
     }
 }
 
