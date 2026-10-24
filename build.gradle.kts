@@ -32,8 +32,8 @@ subprojects {
     apply(plugin = "com.lagradost.cloudstream3.gradle")
 
     cloudstream {
-        // Menggunakan sintaksis modern yang didukung plugin Cloudstream
-        setPluginDir(file("../builds"))
+        // Menggunakan sintaks properti langsung yang valid
+        dest = file("../builds")
     }
 
     tasks.withType<KotlinCompile> {
