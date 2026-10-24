@@ -71,11 +71,11 @@ subprojects {
         }
     }
 
-    dependencies {
-        val apk by configurations
+        dependencies {
+        val cloudstream by configurations
         val implementation by configurations
 
-        apk("com.lagradost:cloudstream3:pre-release")
+        cloudstream("com.lagradost:cloudstream3:pre-release")
 
         implementation(kotlin("stdlib"))
         implementation("com.github.Blatzar:NiceHttp:0.4.11")
