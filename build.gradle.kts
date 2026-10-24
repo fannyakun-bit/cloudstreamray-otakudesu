@@ -32,8 +32,8 @@ subprojects {
     apply(plugin = "com.lagradost.cloudstream3.gradle")
 
     cloudstream {
-        // Menggunakan sintaks properti langsung yang valid
-        dest = file("../builds")
+        // Proper penentuan direktori build di Cloudstream Plugin DSL
+        destDir = file("../builds")
     }
 
     tasks.withType<KotlinCompile> {
