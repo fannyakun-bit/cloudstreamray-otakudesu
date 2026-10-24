@@ -20,9 +20,36 @@ class ExampleProvider : MainAPI() {
     override var lang = "id"
     override val supportedTypes = setOf(TvType.Anime, TvType.AnimeMovie, TvType.OVA)
 
+    private val genreList = listOf(
+        "Action" to "action", "Adventure" to "adventure", "Comedy" to "comedy",
+        "Demons" to "demons", "Drama" to "drama", "Ecchi" to "ecchi",
+        "Fantasy" to "fantasy", "Game" to "game", "Harem" to "harem",
+        "Historical" to "historical", "Horror" to "horror", "Isekai" to "isekai",
+        "Josei" to "josei", "Magic" to "magic", "Martial Arts" to "martial-arts",
+        "Mecha" to "mecha", "Military" to "military", "Music" to "music",
+        "Mystery" to "mystery", "Psychological" to "psychological",
+        "Parody" to "parody", "Police" to "police", "Romance" to "romance",
+        "Samurai" to "samurai", "School" to "school", "Sci-Fi" to "sci-fi",
+        "Seinen" to "seinen", "Shoujo" to "shoujo", "Shoujo Ai" to "shoujo-ai",
+        "Shounen" to "shounen", "Slice of Life" to "slice-of-life",
+        "Sports" to "sports", "Space" to "space", "Super Power" to "super-power",
+        "Supernatural" to "supernatural", "Thriller" to "thriller",
+        "Vampire" to "vampire"
+    )
+
+    private val days = listOf(
+        "Senin", "Selasa", "Rabu", "Kamis", "Jumat", "Sabtu", "Minggu", "Random"
+    )
+
     override val mainPage = mainPageOf(
-        "$mainUrl/ongoing-anime/page/" to "Ongoing Anime",
-        "$mainUrl/complete-anime/page/" to "Completed Anime"
+        *(
+            listOf(
+                "$mainUrl/ongoing-anime/page/" to "Ongoing Anime",
+                "$mainUrl/complete-anime/page/" to "Completed Anime"
+            ) +
+            days.map { "jadwal:$it" to "Jadwal $it" } +
+            genreList.map { (n, slug) -> "$mainUrl/genres/$slug/page/" to "Genre: $n" }
+        ).toTypedArray()
     )
 
     private val ajaxUrl get() = "$mainUrl/wp-admin/admin-ajax.php"
@@ -44,10 +71,47 @@ class ExampleProvider : MainAPI() {
     // ---------------------------------------------------------------- HOME
 
     override suspend fun getMainPage(page: Int, request: MainPageRequest): HomePageResponse {
-        val items = app.get("${request.data}$page/").document
-            .select(".venz ul li")
-            .mapNotNull { it.toSearchResult() }
+        if (request.data.startsWith("jadwal:")) {
+            if (page > 1) return newHomePageResponse(request, emptyList(), false)
+            val items = getSchedule(request.data.removePrefix("jadwal:"))
+            return newHomePageResponse(request, items, false)
+        }
+
+        val document = app.get("${request.data}$page/").document
+        val items = if (request.data.contains("/genres/"))
+            document.select(".col-anime-con").mapNotNull { it.toGenreResult() }
+        else
+            document.select(".venz ul li").mapNotNull { it.toSearchResult() }
         return newHomePageResponse(request.name, items)
+    }
+
+    private suspend fun getSchedule(day: String): List<SearchResponse> {
+        val doc = app.get("$mainUrl/jadwal-rilis/").document
+        val box = doc.select(".kglist321").firstOrNull {
+            it.selectFirst("h2")?.text()?.trim().equals(day, ignoreCase = true)
+        } ?: return emptyList()
+
+        return box.select("ul li a").mapNotNull { a ->
+            val title = cleanTitle(a.text())
+            val href = a.attr("href")
+            if (title.isEmpty() || href.isEmpty()) return@mapNotNull null
+            newAnimeSearchResponse(title, href, TvType.Anime)
+        }
+    }
+
+    private fun Element.toGenreResult(): SearchResponse? {
+        val a = selectFirst(".col-anime-title a") ?: return null
+        val title = cleanTitle(a.text())
+        val href = a.attr("href")
+        if (title.isEmpty() || href.isEmpty()) return null
+        val poster = selectFirst(".col-anime-cover img")?.attr("src")
+        val epNum = selectFirst(".col-anime-eps")?.text()
+            ?.let { Regex("""\d+""").find(it)?.value?.toIntOrNull() }
+
+        return newAnimeSearchResponse(title, href, TvType.Anime) {
+            this.posterUrl = poster
+            addSub(epNum)
+        }
     }
 
     private fun Element.toSearchResult(): SearchResponse? {
