@@ -248,7 +248,7 @@ class ExampleProvider : MainAPI() {
         callback: (ExtractorLink) -> Unit
     ) {
         val server = a.text().trim().lowercase()
-        if (server == "mega" || server == "ondesu3") return
+        if (server == "mega" || a.hasAttr("data-default")) return
         val payload = a.attr("data-content")
         if (payload.isBlank()) return
 
@@ -283,16 +283,19 @@ class ExampleProvider : MainAPI() {
         referer: String,
         quality: String,
         subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
+        callback: (ExtractorLink) -> Unit,
+        depth: Int = 0
     ) {
+        if (depth > 3) return
         val url = if (rawUrl.startsWith("//")) "https:$rawUrl" else rawUrl
         when {
             url.contains("filedon.co") -> extractFiledon(url, referer, quality, callback)
             url.contains("vidhide") || url.contains("earnvids") ->
                 extractVidhide(url, referer, quality, callback)
             url.contains("desustream") ->
-                extractDesustream(url, referer, subtitleCallback, callback)
-            url.contains("blogger.com/video.g") -> extractBlogger(url, referer, callback)
+                extractDesustream(url, referer, quality, subtitleCallback, callback, depth)
+            url.contains("blogger.com/video.g") ->
+                extractBlogger(url, referer, "Blogger", callback)
             else -> loadExtractor(url, referer, subtitleCallback, callback)
         }
     }
@@ -379,18 +382,54 @@ class ExampleProvider : MainAPI() {
         )
     }
 
-    // desustream (ondesu3): halaman pembungkus berisi iframe blogger
+    // desustream (ondesu3, odcdn, odstream, ondesuhd, dst.): ada beberapa bentuk halaman,
+    // jadi dicoba otomatis: iframe blogger -> link mp4/m3u8 langsung -> iframe lain
     private suspend fun extractDesustream(
         url: String,
         referer: String,
+        quality: String,
         subtitleCallback: (SubtitleFile) -> Unit,
-        callback: (ExtractorLink) -> Unit
+        callback: (ExtractorLink) -> Unit,
+        depth: Int
     ) {
-        val doc = app.get(url, referer = referer).document
-        val src = doc.selectFirst("iframe")?.attr("src").orEmpty()
-        when {
-            src.contains("blogger.com/video.g") -> extractBlogger(src, url, callback)
-            src.isNotBlank() -> loadExtractor(src, url, subtitleCallback, callback)
+        val res = app.get(url, referer = referer)
+        val html = res.text
+        val doc = res.document
+        val origin = Regex("""^(https?://[^/]+)""").find(url)?.groupValues?.get(1) ?: url
+        val server = Regex("""/dstream/([A-Za-z0-9]+)""").find(url)?.groupValues?.get(1)
+            ?.replaceFirstChar { it.uppercase() } ?: "Desustream"
+
+        val iframeSrc = doc.selectFirst("iframe")?.attr("src").orEmpty()
+
+        // 1. pembungkus blogger (ondesu3)
+        if (iframeSrc.contains("blogger.com/video.g")) {
+            extractBlogger(iframeSrc, url, server, callback)
+            return
+        }
+
+        // 2. link video langsung di dalam halaman (odcdn: mp4, lainnya mungkin m3u8)
+        val direct = Regex("""https?://[^"'\s\\]+?\.mp4[^"'\s\\]*""").find(html)?.value
+            ?: Regex("""https?://[^"'\s\\]+?\.m3u8[^"'\s\\]*""").find(html)?.value
+        if (direct != null) {
+            val label = Regex("""(\d{3,4})p""").find(direct)?.value ?: quality
+            val isHls = direct.contains(".m3u8")
+            callback(
+                newExtractorLink(
+                    this.name,
+                    server,
+                    direct,
+                    if (isHls) ExtractorLinkType.M3U8 else ExtractorLinkType.VIDEO
+                ) {
+                    this.quality = getQualityFromName(label)
+                    this.referer = "$origin/"
+                }
+            )
+            return
+        }
+
+        // 3. iframe lain di dalamnya: diproses ulang (dengan batas kedalaman)
+        if (iframeSrc.isNotBlank()) {
+            handleEmbed(iframeSrc, url, quality, subtitleCallback, callback, depth + 1)
         }
     }
 
@@ -398,6 +437,7 @@ class ExampleProvider : MainAPI() {
     private suspend fun extractBlogger(
         url: String,
         referer: String,
+        label: String,
         callback: (ExtractorLink) -> Unit
     ) {
         val raw = app.get(url, referer = referer).text
@@ -425,7 +465,7 @@ class ExampleProvider : MainAPI() {
             callback(
                 newExtractorLink(
                     this.name,
-                    "Ondesu3",
+                    label,
                     link,
                     ExtractorLinkType.VIDEO
                 ) {
