@@ -316,7 +316,7 @@ class ExampleProvider : MainAPI() {
         callback(
             newExtractorLink(
                 this.name,
-                "Vidhide $quality".trim(),
+                "Vidhide",
                 link,
                 ExtractorLinkType.M3U8
             ) {
@@ -369,7 +369,7 @@ class ExampleProvider : MainAPI() {
         callback(
             newExtractorLink(
                 this.name,
-                "Filedon $label".trim(),
+                "Filedon",
                 link,
                 ExtractorLinkType.VIDEO
             ) {
@@ -421,12 +421,11 @@ class ExampleProvider : MainAPI() {
                 37 -> 1080
                 else -> Qualities.Unknown.value
             }
-            val label = if (q > 0) "${q}p" else ""
 
             callback(
                 newExtractorLink(
                     this.name,
-                    "Ondesu3 $label".trim(),
+                    "Ondesu3",
                     link,
                     ExtractorLinkType.VIDEO
                 ) {
